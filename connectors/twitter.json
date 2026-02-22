@@ -1,0 +1,282 @@
+{
+  "version": 1,
+  "name": "twitter",
+  "description": "Twitter/X bookmarks and liked tweets.",
+  "api_type": "graphql",
+  "governance_fields": ["text", "author_handle", "author_name"],
+  "auth": {
+    "type": "browser_cookies",
+    "domains": [".x.com", ".twitter.com", "x.com", "twitter.com"],
+    "cookies": ["auth_token", "ct0"],
+    "headers": {
+      "Authorization": "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+      "Cookie": "auth_token={{cookies.auth_token}}; ct0={{cookies.ct0}}",
+      "x-csrf-token": "{{cookies.ct0}}",
+      "x-twitter-active-user": "yes",
+      "x-twitter-auth-type": "OAuth2Session",
+      "x-twitter-client-language": "en"
+    }
+  },
+  "client": {
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+  },
+  "discover": [
+    {
+      "id": "page",
+      "action": "fetch",
+      "url": "https://x.com/"
+    },
+    {
+      "id": "bundle_urls",
+      "action": "regex_all",
+      "input": "{{page.body}}",
+      "pattern": "(?:src|href)=\"((?:https?://[^\"]+|/[^\"]+)(?:main|api|client)[^\"]*\\.js)\"",
+      "group": 1,
+      "limit": 10
+    },
+    {
+      "id": "query_ids",
+      "action": "fetch_regex_map",
+      "urls": "{{bundle_urls}}",
+      "url_prefix": "https://x.com",
+      "pattern": "queryId:\"([^\"]+)\",operationName:\"([^\"]+)\"",
+      "key_group": 2,
+      "value_group": 1
+    }
+  ],
+  "tables": [
+    {
+      "name": "twitter_bookmarks",
+      "columns": [
+        { "name": "tweet_id", "type": "TEXT", "primary_key": true },
+        { "name": "text", "type": "TEXT" },
+        { "name": "author_handle", "type": "TEXT" },
+        { "name": "author_name", "type": "TEXT" },
+        { "name": "author_id", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "favorite_count", "type": "INTEGER" },
+        { "name": "retweet_count", "type": "INTEGER" },
+        { "name": "reply_count", "type": "INTEGER" },
+        { "name": "quote_count", "type": "INTEGER" },
+        { "name": "has_media", "type": "INTEGER" },
+        { "name": "media_types", "type": "TEXT" },
+        { "name": "conversation_id", "type": "TEXT" },
+        { "name": "in_reply_to_tweet_id", "type": "TEXT" },
+        { "name": "lang", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://x.com/i/api/graphql/tmd4ifV8RHltzn8ymGg1aw/Bookmarks",
+        "graphql_method": "GET",
+        "variables": {
+          "count": 20,
+          "includePromotedContent": false
+        },
+        "features": {
+          "graphql_timeline_v2_bookmark_timeline": true,
+          "rweb_video_screen_enabled": true,
+          "responsive_web_graphql_timeline_navigation_enabled": true,
+          "responsive_web_graphql_exclude_directive_enabled": true,
+          "responsive_web_graphql_skip_user_profile_image_extensions_enabled": false,
+          "creator_subscriptions_tweet_preview_api_enabled": true,
+          "communities_web_enable_tweet_community_results_fetch": true,
+          "longform_notetweets_consumption_enabled": true,
+          "responsive_web_twitter_article_tweet_consumption_enabled": true,
+          "view_counts_everywhere_api_enabled": true,
+          "responsive_web_edit_tweet_api_enabled": true,
+          "graphql_is_translatable_rweb_tweet_is_translatable_enabled": true,
+          "longform_notetweets_rich_text_read_enabled": true,
+          "longform_notetweets_inline_media_enabled": true,
+          "freedom_of_speech_not_reach_fetch_enabled": true,
+          "standardized_nudges_misinfo": true,
+          "tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": true,
+          "responsive_web_enhance_cards_enabled": false,
+          "tweetypie_unmention_optimization_enabled": true,
+          "vibe_api_enabled": true,
+          "responsive_web_twitter_blue_verified_badge_is_enabled": true,
+          "interactive_text_enabled": true,
+          "longform_notetweets_richtext_consumption_enabled": true,
+          "verified_phone_label_enabled": false
+        },
+        "pagination": {
+          "type": "cursor",
+          "cursor_variable": "cursor",
+          "cursor_from_results": true,
+          "cursor_entry_id_path": "entryId",
+          "cursor_entry_prefix": "cursor-bottom",
+          "cursor_value_path": "content.value",
+          "max_pages": 50
+        },
+        "rate_limit": { "delay_seconds": 2.0 }
+      },
+      "response": {
+        "results_path": "data.bookmark_timeline_v2.timeline.instructions[0].entries",
+        "filter": { "path": "entryId", "starts_with": "tweet-" },
+        "field_mappings": [
+          { "column": "tweet_id", "path": "content.itemContent.tweet_results.result.rest_id",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.rest_id"] },
+          { "column": "text", "path": "content.itemContent.tweet_results.result.legacy.full_text",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.full_text"] },
+          { "column": "author_handle", "path": "content.itemContent.tweet_results.result.core.user_results.result.legacy.screen_name",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.core.user_results.result.legacy.screen_name"] },
+          { "column": "author_name", "path": "content.itemContent.tweet_results.result.core.user_results.result.legacy.name",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.core.user_results.result.legacy.name"] },
+          { "column": "author_id", "path": "content.itemContent.tweet_results.result.core.user_results.result.rest_id",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.core.user_results.result.rest_id"] },
+          { "column": "created_at", "path": "content.itemContent.tweet_results.result.legacy.created_at",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.created_at"] },
+          { "column": "favorite_count", "path": "content.itemContent.tweet_results.result.legacy.favorite_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.favorite_count"] },
+          { "column": "retweet_count", "path": "content.itemContent.tweet_results.result.legacy.retweet_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.retweet_count"] },
+          { "column": "reply_count", "path": "content.itemContent.tweet_results.result.legacy.reply_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.reply_count"] },
+          { "column": "quote_count", "path": "content.itemContent.tweet_results.result.legacy.quote_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.quote_count"] },
+          { "column": "conversation_id", "path": "content.itemContent.tweet_results.result.legacy.conversation_id_str",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.conversation_id_str"] },
+          { "column": "in_reply_to_tweet_id", "path": "content.itemContent.tweet_results.result.legacy.in_reply_to_status_id_str",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.in_reply_to_status_id_str"] },
+          { "column": "lang", "path": "content.itemContent.tweet_results.result.legacy.lang",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.lang"] }
+        ]
+      }
+    },
+    {
+      "name": "twitter_likes",
+      "columns": [
+        { "name": "tweet_id", "type": "TEXT", "primary_key": true },
+        { "name": "text", "type": "TEXT" },
+        { "name": "author_handle", "type": "TEXT" },
+        { "name": "author_name", "type": "TEXT" },
+        { "name": "author_id", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "favorite_count", "type": "INTEGER" },
+        { "name": "retweet_count", "type": "INTEGER" },
+        { "name": "reply_count", "type": "INTEGER" },
+        { "name": "quote_count", "type": "INTEGER" },
+        { "name": "has_media", "type": "INTEGER" },
+        { "name": "media_types", "type": "TEXT" },
+        { "name": "conversation_id", "type": "TEXT" },
+        { "name": "in_reply_to_tweet_id", "type": "TEXT" },
+        { "name": "lang", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://x.com/i/api/graphql/{{query_ids.Likes}}/Likes",
+        "graphql_method": "GET",
+        "variables": {
+          "userId": "",
+          "count": 20,
+          "includePromotedContent": false
+        },
+        "features": {
+          "graphql_timeline_v2_bookmark_timeline": true,
+          "rweb_video_screen_enabled": true,
+          "responsive_web_graphql_timeline_navigation_enabled": true,
+          "responsive_web_graphql_exclude_directive_enabled": true,
+          "responsive_web_graphql_skip_user_profile_image_extensions_enabled": false,
+          "creator_subscriptions_tweet_preview_api_enabled": true,
+          "communities_web_enable_tweet_community_results_fetch": true,
+          "longform_notetweets_consumption_enabled": true,
+          "responsive_web_twitter_article_tweet_consumption_enabled": true,
+          "view_counts_everywhere_api_enabled": true,
+          "responsive_web_edit_tweet_api_enabled": true,
+          "graphql_is_translatable_rweb_tweet_is_translatable_enabled": true,
+          "longform_notetweets_rich_text_read_enabled": true,
+          "longform_notetweets_inline_media_enabled": true,
+          "freedom_of_speech_not_reach_fetch_enabled": true,
+          "standardized_nudges_misinfo": true,
+          "tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": true,
+          "responsive_web_enhance_cards_enabled": false,
+          "tweetypie_unmention_optimization_enabled": true,
+          "vibe_api_enabled": true,
+          "responsive_web_twitter_blue_verified_badge_is_enabled": true,
+          "interactive_text_enabled": true,
+          "longform_notetweets_richtext_consumption_enabled": true,
+          "verified_phone_label_enabled": false
+        },
+        "pagination": {
+          "type": "cursor",
+          "cursor_variable": "cursor",
+          "cursor_from_results": true,
+          "cursor_entry_id_path": "entryId",
+          "cursor_entry_prefix": "cursor-bottom",
+          "cursor_value_path": "content.value",
+          "max_pages": 50
+        },
+        "rate_limit": { "delay_seconds": 2.0 }
+      },
+      "response": {
+        "results_path": "data.user.result.timeline_v2.timeline.instructions[0].entries",
+        "filter": { "path": "entryId", "starts_with": "tweet-" },
+        "field_mappings": [
+          { "column": "tweet_id", "path": "content.itemContent.tweet_results.result.rest_id",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.rest_id"] },
+          { "column": "text", "path": "content.itemContent.tweet_results.result.legacy.full_text",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.full_text"] },
+          { "column": "author_handle", "path": "content.itemContent.tweet_results.result.core.user_results.result.legacy.screen_name",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.core.user_results.result.legacy.screen_name"] },
+          { "column": "author_name", "path": "content.itemContent.tweet_results.result.core.user_results.result.legacy.name",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.core.user_results.result.legacy.name"] },
+          { "column": "author_id", "path": "content.itemContent.tweet_results.result.core.user_results.result.rest_id",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.core.user_results.result.rest_id"] },
+          { "column": "created_at", "path": "content.itemContent.tweet_results.result.legacy.created_at",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.created_at"] },
+          { "column": "favorite_count", "path": "content.itemContent.tweet_results.result.legacy.favorite_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.favorite_count"] },
+          { "column": "retweet_count", "path": "content.itemContent.tweet_results.result.legacy.retweet_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.retweet_count"] },
+          { "column": "reply_count", "path": "content.itemContent.tweet_results.result.legacy.reply_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.reply_count"] },
+          { "column": "quote_count", "path": "content.itemContent.tweet_results.result.legacy.quote_count",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.quote_count"] },
+          { "column": "conversation_id", "path": "content.itemContent.tweet_results.result.legacy.conversation_id_str",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.conversation_id_str"] },
+          { "column": "in_reply_to_tweet_id", "path": "content.itemContent.tweet_results.result.legacy.in_reply_to_status_id_str",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.in_reply_to_status_id_str"] },
+          { "column": "lang", "path": "content.itemContent.tweet_results.result.legacy.lang",
+            "alt_paths": ["content.itemContent.tweet_results.result.tweet.legacy.lang"] }
+        ]
+      }
+    }
+  ],
+  "fts": [
+    {
+      "table_name": "bookmarks_fts",
+      "source_table": "twitter_bookmarks",
+      "columns": ["text", "author_handle", "author_name"],
+      "tokenizer": "porter unicode61",
+      "id_column": "tweet_id",
+      "map_id_column": "tweet_id",
+      "search_type": "bookmark",
+      "title_expr": "'@' || t.author_handle",
+      "date_column": "created_at",
+      "snippet_column": 0,
+      "metadata_columns": {
+        "author_name": "t.author_name",
+        "created_at": "t.created_at",
+        "favorites": "t.favorite_count",
+        "retweets": "t.retweet_count"
+      }
+    },
+    {
+      "table_name": "likes_fts",
+      "source_table": "twitter_likes",
+      "columns": ["text", "author_handle", "author_name"],
+      "tokenizer": "porter unicode61",
+      "id_column": "tweet_id",
+      "map_id_column": "tweet_id",
+      "search_type": "like",
+      "title_expr": "'@' || t.author_handle",
+      "date_column": "created_at",
+      "snippet_column": 0,
+      "metadata_columns": {
+        "author_name": "t.author_name",
+        "created_at": "t.created_at",
+        "favorites": "t.favorite_count",
+        "retweets": "t.retweet_count"
+      }
+    }
+  ]
+}

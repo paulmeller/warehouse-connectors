@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "name": "hackernews",
+  "description": "Hacker News top stories via Algolia API (no auth required).",
+  "api_type": "rest",
+  "governance_fields": ["title", "url", "author"],
+  "tables": [
+    {
+      "name": "hackernews_stories",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true },
+        { "name": "title", "type": "TEXT" },
+        { "name": "url", "type": "TEXT" },
+        { "name": "author", "type": "TEXT" },
+        { "name": "points", "type": "INTEGER" },
+        { "name": "num_comments", "type": "INTEGER" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=100",
+        "method": "GET"
+      },
+      "response": {
+        "results_path": "hits",
+        "field_mappings": [
+          { "column": "id", "path": "objectID" },
+          { "column": "title", "path": "title" },
+          { "column": "url", "path": "url" },
+          { "column": "author", "path": "author" },
+          { "column": "points", "path": "points" },
+          { "column": "num_comments", "path": "num_comments" },
+          { "column": "created_at", "path": "created_at" }
+        ]
+      }
+    }
+  ],
+  "fts": [
+    {
+      "table_name": "hackernews_fts",
+      "source_table": "hackernews_stories",
+      "columns": ["title", "author"],
+      "tokenizer": "porter unicode61",
+      "id_column": "id",
+      "map_id_column": "story_id",
+      "search_type": "hackernews",
+      "title_column": "title",
+      "date_column": "created_at",
+      "snippet_column": 0,
+      "metadata_columns": {
+        "author": "t.author",
+        "points": "t.points",
+        "comments": "t.num_comments",
+        "url": "t.url"
+      }
+    }
+  ]
+}

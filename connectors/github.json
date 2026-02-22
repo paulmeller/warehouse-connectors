@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "name": "github",
+  "description": "GitHub starred repositories.",
+  "api_type": "rest",
+  "governance_fields": ["name", "full_name", "description"],
+  "auth": {
+    "type": "config_key",
+    "key": "github.token",
+    "header_name": "Authorization",
+    "header_prefix": "Bearer"
+  },
+  "client": {
+    "default_headers": {
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    }
+  },
+  "tables": [
+    {
+      "name": "github_stars",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true },
+        { "name": "name", "type": "TEXT" },
+        { "name": "full_name", "type": "TEXT" },
+        { "name": "description", "type": "TEXT" },
+        { "name": "language", "type": "TEXT" },
+        { "name": "stargazers_count", "type": "INTEGER" },
+        { "name": "url", "type": "TEXT" },
+        { "name": "topics", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://api.github.com/user/starred",
+        "method": "GET",
+        "pagination": {
+          "type": "page_number",
+          "page_size": 100,
+          "max_pages": 50
+        },
+        "rate_limit": { "delay_seconds": 0.2 }
+      },
+      "response": {
+        "results_path": "$",
+        "field_mappings": [
+          { "column": "id", "path": "id", "transform": "to_string" },
+          { "column": "name", "path": "name" },
+          { "column": "full_name", "path": "full_name" },
+          { "column": "description", "path": "description" },
+          { "column": "language", "path": "language" },
+          { "column": "stargazers_count", "path": "stargazers_count" },
+          { "column": "url", "path": "html_url" },
+          { "column": "topics", "path": "topics", "transform": "join_array" },
+          { "column": "created_at", "path": "created_at" }
+        ]
+      }
+    }
+  ],
+  "fts": [
+    {
+      "table_name": "github_fts",
+      "source_table": "github_stars",
+      "columns": ["name", "description", "topics"],
+      "tokenizer": "porter unicode61",
+      "id_column": "id",
+      "map_id_column": "repo_id",
+      "search_type": "github",
+      "title_column": "full_name",
+      "date_column": "created_at",
+      "snippet_column": 1,
+      "metadata_columns": {
+        "language": "t.language",
+        "stars": "t.stargazers_count",
+        "url": "t.url",
+        "topics": "t.topics"
+      }
+    }
+  ]
+}

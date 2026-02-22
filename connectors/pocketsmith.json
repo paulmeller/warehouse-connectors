@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "name": "pocketsmith",
+  "description": "PocketSmith accounts, categories, and transactions.",
+  "api_type": "rest",
+  "governance_fields": ["payee", "category_name", "note", "amount"],
+  "auth": {
+    "type": "config_key",
+    "key": "pocketsmith.api_key",
+    "header_name": "X-Developer-Key"
+  },
+  "client": {
+    "default_headers": {
+      "Accept": "application/json"
+    }
+  },
+  "discover": [
+    {
+      "id": "user",
+      "action": "fetch_json",
+      "url": "https://api.pocketsmith.com/v2/me"
+    }
+  ],
+  "tables": [
+    {
+      "name": "pocketsmith_accounts",
+      "soft_delete": true,
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true },
+        { "name": "title", "type": "TEXT" },
+        { "name": "type", "type": "TEXT" },
+        { "name": "currency_code", "type": "TEXT" },
+        { "name": "current_balance", "type": "REAL" },
+        { "name": "current_balance_date", "type": "TEXT" },
+        { "name": "safe_balance", "type": "REAL" },
+        { "name": "is_net_worth", "type": "INTEGER" },
+        { "name": "institution_id", "type": "TEXT" },
+        { "name": "institution_name", "type": "TEXT" },
+        { "name": "transaction_account_id", "type": "TEXT" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "updated_at", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://api.pocketsmith.com/v2/users/{{user.id}}/accounts",
+        "method": "GET"
+      },
+      "response": {
+        "results_path": "$",
+        "field_mappings": [
+          { "column": "id", "path": "id", "transform": "to_string" },
+          { "column": "title", "path": "title" },
+          { "column": "type", "path": "type" },
+          { "column": "currency_code", "path": "currency_code" },
+          { "column": "current_balance", "path": "current_balance" },
+          { "column": "current_balance_date", "path": "current_balance_date" },
+          { "column": "safe_balance", "path": "safe_balance" },
+          { "column": "is_net_worth", "path": "is_net_worth", "transform": "to_bool" },
+          { "column": "institution_id", "path": "institution.id", "transform": "to_string" },
+          { "column": "institution_name", "path": "institution.title" },
+          { "column": "transaction_account_id", "path": "transaction_accounts[0].id", "transform": "to_string" },
+          { "column": "created_at", "path": "created_at" },
+          { "column": "updated_at", "path": "updated_at" }
+        ]
+      }
+    },
+    {
+      "name": "pocketsmith_categories",
+      "soft_delete": true,
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true },
+        { "name": "title", "type": "TEXT" },
+        { "name": "colour", "type": "TEXT" },
+        { "name": "parent_id", "type": "TEXT" },
+        { "name": "is_transfer", "type": "INTEGER" },
+        { "name": "is_bill", "type": "INTEGER" },
+        { "name": "roll_up", "type": "INTEGER" },
+        { "name": "refund_behaviour", "type": "TEXT" },
+        { "name": "children_count", "type": "INTEGER" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "updated_at", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://api.pocketsmith.com/v2/users/{{user.id}}/categories",
+        "method": "GET"
+      },
+      "response": {
+        "results_path": "$",
+        "field_mappings": [
+          { "column": "id", "path": "id", "transform": "to_string" },
+          { "column": "title", "path": "title" },
+          { "column": "colour", "path": "colour" },
+          { "column": "parent_id", "path": "parent_id", "transform": "to_string" },
+          { "column": "is_transfer", "path": "is_transfer", "transform": "to_bool" },
+          { "column": "is_bill", "path": "is_bill", "transform": "to_bool" },
+          { "column": "roll_up", "path": "roll_up", "transform": "to_bool" },
+          { "column": "refund_behaviour", "path": "refund_behaviour" },
+          { "column": "children_count", "path": "children_count" },
+          { "column": "created_at", "path": "created_at" },
+          { "column": "updated_at", "path": "updated_at" }
+        ]
+      }
+    },
+    {
+      "name": "pocketsmith_transactions",
+      "columns": [
+        { "name": "id", "type": "TEXT", "primary_key": true },
+        { "name": "date", "type": "TEXT" },
+        { "name": "payee", "type": "TEXT" },
+        { "name": "original_payee", "type": "TEXT" },
+        { "name": "amount", "type": "REAL" },
+        { "name": "amount_in_base_currency", "type": "REAL" },
+        { "name": "type", "type": "TEXT" },
+        { "name": "is_transfer", "type": "INTEGER" },
+        { "name": "category_id", "type": "TEXT" },
+        { "name": "category_name", "type": "TEXT" },
+        { "name": "memo", "type": "TEXT" },
+        { "name": "note", "type": "TEXT" },
+        { "name": "labels", "type": "TEXT" },
+        { "name": "transaction_account_id", "type": "TEXT" },
+        { "name": "transaction_account_name", "type": "TEXT" },
+        { "name": "closing_balance", "type": "REAL" },
+        { "name": "cheque_number", "type": "TEXT" },
+        { "name": "needs_review", "type": "INTEGER" },
+        { "name": "created_at", "type": "TEXT" },
+        { "name": "updated_at", "type": "TEXT" },
+        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      ],
+      "endpoint": {
+        "url": "https://api.pocketsmith.com/v2/users/{{user.id}}/transactions?start_date={{last_sync.date}}&end_date={{date.today}}",
+        "method": "GET",
+        "pagination": {
+          "type": "page_number",
+          "page_size": 100,
+          "max_pages": 50
+        },
+        "rate_limit": { "delay_seconds": 0.5 }
+      },
+      "response": {
+        "results_path": "$",
+        "field_mappings": [
+          { "column": "id", "path": "id", "transform": "to_string" },
+          { "column": "date", "path": "date" },
+          { "column": "payee", "path": "payee" },
+          { "column": "original_payee", "path": "original_payee" },
+          { "column": "amount", "path": "amount" },
+          { "column": "amount_in_base_currency", "path": "amount_in_base_currency" },
+          { "column": "type", "path": "type" },
+          { "column": "is_transfer", "path": "is_transfer", "transform": "to_bool" },
+          { "column": "category_id", "path": "category.id", "transform": "to_string" },
+          { "column": "category_name", "path": "category.title" },
+          { "column": "memo", "path": "memo" },
+          { "column": "note", "path": "note" },
+          { "column": "labels", "path": "labels", "transform": "join_array" },
+          { "column": "transaction_account_id", "path": "transaction_account.id", "transform": "to_string" },
+          { "column": "transaction_account_name", "path": "transaction_account.name" },
+          { "column": "closing_balance", "path": "closing_balance" },
+          { "column": "cheque_number", "path": "cheque_number" },
+          { "column": "needs_review", "path": "needs_review", "transform": "to_bool" },
+          { "column": "created_at", "path": "created_at" },
+          { "column": "updated_at", "path": "updated_at" }
+        ]
+      }
+    }
+  ],
+  "fts": [
+    {
+      "table_name": "transactions_fts",
+      "source_table": "pocketsmith_transactions",
+      "columns": ["merchant_or_payee", "category_name", "notes", "account_name"],
+      "tokenizer": "porter unicode61",
+      "id_column": "id",
+      "map_id_column": "transaction_id",
+      "source_tag": "pocketsmith",
+      "column_expressions": {
+        "merchant_or_payee": "COALESCE(payee, '')",
+        "category_name": "COALESCE(category_name, '')",
+        "notes": "COALESCE(note, '') || ' ' || COALESCE(memo, '')",
+        "account_name": "COALESCE(transaction_account_name, '')"
+      },
+      "search_type": "transaction",
+      "title_column": "payee",
+      "title_fallback": "Unknown Payee",
+      "date_column": "date",
+      "snippet_column": 0,
+      "snippet_template": "amount_category",
+      "metadata_columns": {
+        "amount": "t.amount",
+        "date": "t.date",
+        "category": "t.category_name",
+        "account": "t.transaction_account_name",
+        "notes": "COALESCE(t.note, '') || ' ' || COALESCE(t.memo, '')",
+        "source": "'pocketsmith'"
+      }
+    }
+  ]
+}
