@@ -1,261 +1,489 @@
 {
-  "version": 1,
-  "name": "monarch",
-  "description": "Monarch Money accounts, transactions, budgets, and recurring items.",
   "api_type": "graphql",
-  "governance_fields": ["merchant_name", "category_name", "notes", "amount"],
   "auth": {
-    "type": "token_chain",
     "cache_file": "monarch_token",
-    "strategies": [
-      { "type": "env", "var": "MONARCH_TOKEN" },
-      { "type": "safari_localstorage", "origin_marker": "monarchDeviceUUID", "localstorage_key": "persist:root", "token_path": "user.token" }
-    ],
     "header_name": "Authorization",
     "header_prefix": "Token",
-    "validate_url": "https://api.monarch.com/graphql",
-    "validate_query": "query ValidateToken { accounts { id } }"
+    "strategies": [
+      {
+        "type": "env",
+        "var": "MONARCH_TOKEN"
+      },
+      {
+        "localstorage_key": "persist:root",
+        "origin_marker": "monarchDeviceUUID",
+        "token_path": "user.token",
+        "type": "safari_localstorage"
+      }
+    ],
+    "type": "token_chain",
+    "validate_query": "query ValidateToken { accounts { id } }",
+    "validate_url": "https://api.monarch.com/graphql"
   },
   "client": {
-    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
     "default_headers": {
       "Accept": "application/json",
-      "Content-Type": "application/json",
-      "Client-Platform": "web"
-    }
+      "Client-Platform": "web",
+      "Content-Type": "application/json"
+    },
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
   },
+  "description": "Monarch Money accounts, transactions, budgets, and recurring items.",
+  "fts": [
+    {
+      "column_expressions": {
+        "account_name": "COALESCE(account_name, '')",
+        "category_name": "COALESCE(category_name, '')",
+        "merchant_or_payee": "COALESCE(merchant_name, '')",
+        "notes": "COALESCE(notes, '')"
+      },
+      "columns": [
+        "merchant_or_payee",
+        "category_name",
+        "notes",
+        "account_name"
+      ],
+      "date_column": "date",
+      "id_column": "id",
+      "map_id_column": "transaction_id",
+      "metadata_columns": {
+        "account": "t.account_name",
+        "amount": "t.amount",
+        "category": "t.category_name",
+        "date": "t.date",
+        "notes": "t.notes",
+        "source": "'monarch'"
+      },
+      "search_type": "transaction",
+      "snippet_column": 0,
+      "snippet_template": "amount_category",
+      "source_table": "monarch_transactions",
+      "source_tag": "monarch",
+      "table_name": "transactions_fts",
+      "title_column": "merchant_name",
+      "title_fallback": "Unknown Merchant",
+      "tokenizer": "porter unicode61"
+    }
+  ],
+  "governance_fields": [
+    "merchant_name",
+    "category_name",
+    "notes",
+    "amount"
+  ],
+  "name": "monarch",
   "tables": [
     {
-      "name": "monarch_accounts",
       "columns": [
-        { "name": "id", "type": "TEXT", "primary_key": true },
-        { "name": "display_name", "type": "TEXT" },
-        { "name": "type_name", "type": "TEXT" },
-        { "name": "type_display", "type": "TEXT" },
-        { "name": "type_group", "type": "TEXT" },
-        { "name": "subtype", "type": "TEXT" },
-        { "name": "institution_id", "type": "TEXT" },
-        { "name": "institution_name", "type": "TEXT" },
-        { "name": "institution_url", "type": "TEXT" },
-        { "name": "current_balance", "type": "REAL" },
-        { "name": "display_balance", "type": "TEXT" },
-        { "name": "is_asset", "type": "INTEGER" },
-        { "name": "is_manual", "type": "INTEGER" },
-        { "name": "is_hidden", "type": "INTEGER" },
-        { "name": "include_in_net_worth", "type": "INTEGER" },
-        { "name": "sync_disabled", "type": "INTEGER" },
-        { "name": "mask", "type": "TEXT" },
-        { "name": "logo_url", "type": "TEXT" },
-        { "name": "created_at", "type": "TEXT" },
-        { "name": "updated_at", "type": "TEXT" },
-        { "name": "transactions_count", "type": "INTEGER" },
-        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
-      ],
-      "endpoint": {
-        "url": "https://api.monarch.com/graphql",
-        "query": "query GetAccounts { accounts { id displayName syncDisabled isHidden isAsset mask createdAt updatedAt currentBalance displayBalance includeInNetWorth isManual transactionsCount logoUrl type { name display group } subtype { name } institution { id name url } } }",
-        "operation_name": "GetAccounts"
-      },
-      "response": {
-        "results_path": "data.accounts",
-        "field_mappings": [
-          { "column": "id", "path": "id" },
-          { "column": "display_name", "path": "displayName" },
-          { "column": "type_name", "path": "type.name" },
-          { "column": "type_display", "path": "type.display" },
-          { "column": "type_group", "path": "type.group" },
-          { "column": "subtype", "path": "subtype.name" },
-          { "column": "institution_id", "path": "institution.id" },
-          { "column": "institution_name", "path": "institution.name" },
-          { "column": "institution_url", "path": "institution.url" },
-          { "column": "current_balance", "path": "currentBalance" },
-          { "column": "display_balance", "path": "displayBalance" },
-          { "column": "is_asset", "path": "isAsset", "transform": "to_bool" },
-          { "column": "is_manual", "path": "isManual", "transform": "to_bool" },
-          { "column": "is_hidden", "path": "isHidden", "transform": "to_bool" },
-          { "column": "include_in_net_worth", "path": "includeInNetWorth", "transform": "to_bool" },
-          { "column": "sync_disabled", "path": "syncDisabled", "transform": "to_bool" },
-          { "column": "mask", "path": "mask" },
-          { "column": "logo_url", "path": "logoUrl" },
-          { "column": "created_at", "path": "createdAt" },
-          { "column": "updated_at", "path": "updatedAt" },
-          { "column": "transactions_count", "path": "transactionsCount" }
-        ]
-      }
-    },
-    {
-      "name": "monarch_transactions",
-      "columns": [
-        { "name": "id", "type": "TEXT", "primary_key": true },
-        { "name": "account_id", "type": "TEXT" },
-        { "name": "account_name", "type": "TEXT" },
-        { "name": "date", "type": "TEXT" },
-        { "name": "amount", "type": "REAL" },
-        { "name": "pending", "type": "INTEGER" },
-        { "name": "merchant_id", "type": "TEXT" },
-        { "name": "merchant_name", "type": "TEXT" },
-        { "name": "category_id", "type": "TEXT" },
-        { "name": "category_name", "type": "TEXT" },
-        { "name": "category_group_id", "type": "TEXT" },
-        { "name": "category_group_name", "type": "TEXT" },
-        { "name": "category_group_type", "type": "TEXT" },
-        { "name": "notes", "type": "TEXT" },
-        { "name": "is_recurring", "type": "INTEGER" },
-        { "name": "is_split", "type": "INTEGER" },
-        { "name": "needs_review", "type": "INTEGER" },
-        { "name": "hide_from_reports", "type": "INTEGER" },
-        { "name": "plaid_name", "type": "TEXT" },
-        { "name": "tags", "type": "TEXT" },
-        { "name": "created_at", "type": "TEXT" },
-        { "name": "updated_at", "type": "TEXT" },
-        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
-      ],
-      "endpoint": {
-        "url": "https://api.monarch.com/graphql",
-        "query": "query GetTransactionsList($offset: Int, $limit: Int, $orderBy: TransactionOrdering) { allTransactions(filters: {}) { totalCount results(offset: $offset, limit: $limit, orderBy: $orderBy) { id amount pending date hideFromReports plaidName notes isRecurring needsReview isSplitTransaction createdAt updatedAt category { id name group { id name type } } merchant { id name } account { id displayName } tags { id name } } } }",
-        "operation_name": "GetTransactionsList",
-        "variables": { "orderBy": "date" },
-        "pagination": {
-          "type": "offset",
-          "page_size": 100,
-          "max_pages": 100
+        {
+          "name": "id",
+          "primary_key": true,
+          "type": "TEXT"
         },
-        "rate_limit": { "delay_seconds": 0.5 }
+        {
+          "name": "display_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "type_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "type_display",
+          "type": "TEXT"
+        },
+        {
+          "name": "type_group",
+          "type": "TEXT"
+        },
+        {
+          "name": "subtype",
+          "type": "TEXT"
+        },
+        {
+          "name": "institution_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "institution_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "institution_url",
+          "type": "TEXT"
+        },
+        {
+          "name": "current_balance",
+          "type": "REAL"
+        },
+        {
+          "name": "display_balance",
+          "type": "TEXT"
+        },
+        {
+          "name": "is_asset",
+          "type": "INTEGER"
+        },
+        {
+          "name": "is_manual",
+          "type": "INTEGER"
+        },
+        {
+          "name": "is_hidden",
+          "type": "INTEGER"
+        },
+        {
+          "name": "include_in_net_worth",
+          "type": "INTEGER"
+        },
+        {
+          "name": "sync_disabled",
+          "type": "INTEGER"
+        },
+        {
+          "name": "mask",
+          "type": "TEXT"
+        },
+        {
+          "name": "logo_url",
+          "type": "TEXT"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT"
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT"
+        },
+        {
+          "name": "transactions_count",
+          "type": "INTEGER"
+        },
+        {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "_extracted_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "endpoint": {
+        "operation_name": "GetAccounts",
+        "query": "query GetAccounts { accounts { id displayName syncDisabled isHidden isAsset mask createdAt updatedAt currentBalance displayBalance includeInNetWorth isManual transactionsCount logoUrl type { name display group } subtype { name } institution { id name url } } }",
+        "url": "https://api.monarch.com/graphql"
       },
+      "name": "monarch_accounts",
       "response": {
-        "results_path": "data.allTransactions.results",
         "field_mappings": [
-          { "column": "id", "path": "id" },
-          { "column": "account_id", "path": "account.id" },
-          { "column": "account_name", "path": "account.displayName" },
-          { "column": "date", "path": "date" },
-          { "column": "amount", "path": "amount" },
-          { "column": "pending", "path": "pending", "transform": "to_bool" },
-          { "column": "merchant_id", "path": "merchant.id" },
-          { "column": "merchant_name", "path": "merchant.name" },
-          { "column": "category_id", "path": "category.id" },
-          { "column": "category_name", "path": "category.name" },
-          { "column": "category_group_id", "path": "category.group.id" },
-          { "column": "category_group_name", "path": "category.group.name" },
-          { "column": "category_group_type", "path": "category.group.type" },
-          { "column": "notes", "path": "notes" },
-          { "column": "is_recurring", "path": "isRecurring", "transform": "to_bool" },
-          { "column": "is_split", "path": "isSplitTransaction", "transform": "to_bool" },
-          { "column": "needs_review", "path": "needsReview", "transform": "to_bool" },
-          { "column": "hide_from_reports", "path": "hideFromReports", "transform": "to_bool" },
-          { "column": "plaid_name", "path": "plaidName" },
-          { "column": "tags", "path": "tags", "transform": "join_array" },
-          { "column": "created_at", "path": "createdAt" },
-          { "column": "updated_at", "path": "updatedAt" }
-        ]
+          {
+            "column": "id",
+            "path": "id"
+          },
+          {
+            "column": "display_name",
+            "path": "displayName"
+          },
+          {
+            "column": "type_name",
+            "path": "type.name"
+          },
+          {
+            "column": "type_display",
+            "path": "type.display"
+          },
+          {
+            "column": "type_group",
+            "path": "type.group"
+          },
+          {
+            "column": "subtype",
+            "path": "subtype.name"
+          },
+          {
+            "column": "institution_id",
+            "path": "institution.id"
+          },
+          {
+            "column": "institution_name",
+            "path": "institution.name"
+          },
+          {
+            "column": "institution_url",
+            "path": "institution.url"
+          },
+          {
+            "column": "current_balance",
+            "path": "currentBalance"
+          },
+          {
+            "column": "display_balance",
+            "path": "displayBalance"
+          },
+          {
+            "column": "is_asset",
+            "path": "isAsset",
+            "transform": "to_bool"
+          },
+          {
+            "column": "is_manual",
+            "path": "isManual",
+            "transform": "to_bool"
+          },
+          {
+            "column": "is_hidden",
+            "path": "isHidden",
+            "transform": "to_bool"
+          },
+          {
+            "column": "include_in_net_worth",
+            "path": "includeInNetWorth",
+            "transform": "to_bool"
+          },
+          {
+            "column": "sync_disabled",
+            "path": "syncDisabled",
+            "transform": "to_bool"
+          },
+          {
+            "column": "mask",
+            "path": "mask"
+          },
+          {
+            "column": "logo_url",
+            "path": "logoUrl"
+          },
+          {
+            "column": "created_at",
+            "path": "createdAt"
+          },
+          {
+            "column": "updated_at",
+            "path": "updatedAt"
+          },
+          {
+            "column": "transactions_count",
+            "path": "transactionsCount"
+          }
+        ],
+        "results_path": "data.accounts"
       }
     },
     {
-      "name": "monarch_recurring",
       "columns": [
-        { "name": "id", "type": "TEXT", "primary_key": true },
-        { "name": "merchant_id", "type": "TEXT" },
-        { "name": "merchant_name", "type": "TEXT" },
-        { "name": "category_id", "type": "TEXT" },
-        { "name": "category_name", "type": "TEXT" },
-        { "name": "amount", "type": "REAL" },
-        { "name": "frequency", "type": "TEXT" },
-        { "name": "is_active", "type": "INTEGER" },
-        { "name": "last_date", "type": "TEXT" },
-        { "name": "next_date", "type": "TEXT" },
-        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+        {
+          "name": "id",
+          "primary_key": true,
+          "type": "TEXT"
+        },
+        {
+          "name": "account_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "account_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "date",
+          "type": "TEXT"
+        },
+        {
+          "name": "amount",
+          "type": "REAL"
+        },
+        {
+          "name": "pending",
+          "type": "INTEGER"
+        },
+        {
+          "name": "merchant_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "merchant_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "category_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "category_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "category_group_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "category_group_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "category_group_type",
+          "type": "TEXT"
+        },
+        {
+          "name": "notes",
+          "type": "TEXT"
+        },
+        {
+          "name": "is_recurring",
+          "type": "INTEGER"
+        },
+        {
+          "name": "is_split",
+          "type": "INTEGER"
+        },
+        {
+          "name": "needs_review",
+          "type": "INTEGER"
+        },
+        {
+          "name": "hide_from_reports",
+          "type": "INTEGER"
+        },
+        {
+          "name": "plaid_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "tags",
+          "type": "TEXT"
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT"
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT"
+        },
+        {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "_extracted_at",
+          "type": "TIMESTAMP"
+        }
       ],
       "endpoint": {
+        "operation_name": "GetTransactionsList",
+        "pagination": {
+          "max_pages": 100,
+          "page_size": 100,
+          "type": "offset"
+        },
+        "query": "query GetTransactionsList($offset: Int, $limit: Int, $orderBy: TransactionOrdering) { allTransactions(filters: {}) { totalCount results(offset: $offset, limit: $limit, orderBy: $orderBy) { id amount pending date hideFromReports plaidName notes isRecurring needsReview isSplitTransaction createdAt updatedAt category { id name group { id name type } } merchant { id name } account { id displayName } tags { id name } } } }",
+        "incremental": {
+          "stop_date_path": "date"
+        },
+        "rate_limit": {
+          "delay_seconds": 0.5
+        },
         "url": "https://api.monarch.com/graphql",
-        "query": "query GetRecurringTransactions { recurringTransactionStreams { id frequency isActive amount merchant { id name } category { id name } lastTransaction { id date } nextExpectedTransaction { date } } }",
-        "operation_name": "GetRecurringTransactions"
-      },
-      "response": {
-        "results_path": "data.recurringTransactionStreams",
-        "field_mappings": [
-          { "column": "id", "path": "id" },
-          { "column": "merchant_id", "path": "merchant.id" },
-          { "column": "merchant_name", "path": "merchant.name" },
-          { "column": "category_id", "path": "category.id" },
-          { "column": "category_name", "path": "category.name" },
-          { "column": "amount", "path": "amount" },
-          { "column": "frequency", "path": "frequency" },
-          { "column": "is_active", "path": "isActive", "transform": "to_bool" },
-          { "column": "last_date", "path": "lastTransaction.date" },
-          { "column": "next_date", "path": "nextExpectedTransaction.date" }
-        ]
-      }
-    },
-    {
-      "name": "monarch_budgets",
-      "columns": [
-        { "name": "category_id", "type": "TEXT" },
-        { "name": "month", "type": "TEXT" },
-        { "name": "category_name", "type": "TEXT" },
-        { "name": "category_group_id", "type": "TEXT" },
-        { "name": "category_group_name", "type": "TEXT" },
-        { "name": "category_group_type", "type": "TEXT" },
-        { "name": "planned_amount", "type": "REAL" },
-        { "name": "actual_amount", "type": "REAL" },
-        { "name": "remaining_amount", "type": "REAL" },
-        { "name": "rollover_amount", "type": "REAL" },
-        { "name": "_extracted_at", "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
-      ],
-      "endpoint": {
-        "url": "https://api.monarch.com/graphql",
-        "query": "query GetBudgets($startDate: Date!, $endDate: Date!) { budgetData(startDate: $startDate, endDate: $endDate) { monthlyAmountsByCategory { category { id name group { id name type } } monthlyAmounts { month plannedAmount actualAmount remainingAmount rolloverAmount } } } }",
-        "operation_name": "GetBudgets",
         "variables": {
-          "startDate": "{{date.month_start}}",
-          "endDate": "{{date.month_end}}"
+          "orderBy": "date"
         }
       },
+      "name": "monarch_transactions",
       "response": {
-        "results_path": "data.budgetData.monthlyAmountsByCategory",
         "field_mappings": [
-          { "column": "category_id", "path": "category.id" },
-          { "column": "month", "path": "monthlyAmounts[0].month" },
-          { "column": "category_name", "path": "category.name" },
-          { "column": "category_group_id", "path": "category.group.id" },
-          { "column": "category_group_name", "path": "category.group.name" },
-          { "column": "category_group_type", "path": "category.group.type" },
-          { "column": "planned_amount", "path": "monthlyAmounts[0].plannedAmount" },
-          { "column": "actual_amount", "path": "monthlyAmounts[0].actualAmount" },
-          { "column": "remaining_amount", "path": "monthlyAmounts[0].remainingAmount" },
-          { "column": "rollover_amount", "path": "monthlyAmounts[0].rolloverAmount" }
-        ]
+          {
+            "column": "id",
+            "path": "id"
+          },
+          {
+            "column": "account_id",
+            "path": "account.id"
+          },
+          {
+            "column": "account_name",
+            "path": "account.displayName"
+          },
+          {
+            "column": "date",
+            "path": "date"
+          },
+          {
+            "column": "amount",
+            "path": "amount"
+          },
+          {
+            "column": "pending",
+            "path": "pending",
+            "transform": "to_bool"
+          },
+          {
+            "column": "merchant_id",
+            "path": "merchant.id"
+          },
+          {
+            "column": "merchant_name",
+            "path": "merchant.name"
+          },
+          {
+            "column": "category_id",
+            "path": "category.id"
+          },
+          {
+            "column": "category_name",
+            "path": "category.name"
+          },
+          {
+            "column": "category_group_id",
+            "path": "category.group.id"
+          },
+          {
+            "column": "category_group_name",
+            "path": "category.group.name"
+          },
+          {
+            "column": "category_group_type",
+            "path": "category.group.type"
+          },
+          {
+            "column": "notes",
+            "path": "notes"
+          },
+          {
+            "column": "is_recurring",
+            "path": "isRecurring",
+            "transform": "to_bool"
+          },
+          {
+            "column": "is_split",
+            "path": "isSplitTransaction",
+            "transform": "to_bool"
+          },
+          {
+            "column": "needs_review",
+            "path": "needsReview",
+            "transform": "to_bool"
+          },
+          {
+            "column": "hide_from_reports",
+            "path": "hideFromReports",
+            "transform": "to_bool"
+          },
+          {
+            "column": "plaid_name",
+            "path": "plaidName"
+          },
+          {
+            "column": "tags",
+            "path": "tags",
+            "transform": "join_array"
+          },
+          {
+            "column": "created_at",
+            "path": "createdAt"
+          },
+          {
+            "column": "updated_at",
+            "path": "updatedAt"
+          }
+        ],
+        "results_path": "data.allTransactions.results"
       }
     }
   ],
-  "fts": [
-    {
-      "table_name": "transactions_fts",
-      "source_table": "monarch_transactions",
-      "columns": ["merchant_or_payee", "category_name", "notes", "account_name"],
-      "tokenizer": "porter unicode61",
-      "id_column": "id",
-      "map_id_column": "transaction_id",
-      "source_tag": "monarch",
-      "column_expressions": {
-        "merchant_or_payee": "COALESCE(merchant_name, '')",
-        "category_name": "COALESCE(category_name, '')",
-        "notes": "COALESCE(notes, '')",
-        "account_name": "COALESCE(account_name, '')"
-      },
-      "search_type": "transaction",
-      "title_column": "merchant_name",
-      "title_fallback": "Unknown Merchant",
-      "date_column": "date",
-      "snippet_column": 0,
-      "snippet_template": "amount_category",
-      "metadata_columns": {
-        "amount": "t.amount",
-        "date": "t.date",
-        "category": "t.category_name",
-        "account": "t.account_name",
-        "notes": "t.notes",
-        "source": "'monarch'"
-      }
-    }
-  ]
+  "version": 1
 }
