@@ -63,6 +63,36 @@
       "title_column": "merchant_name",
       "title_fallback": "Unknown Merchant",
       "tokenizer": "porter unicode61"
+    },
+    {
+      "column_expressions": {
+        "security_name": "COALESCE(security_name, '')",
+        "ticker": "COALESCE(ticker, '')",
+        "security_type": "COALESCE(security_type, '')"
+      },
+      "columns": [
+        "security_name",
+        "ticker",
+        "security_type"
+      ],
+      "id_column": "id",
+      "map_id_column": "holding_id",
+      "metadata_columns": {
+        "ticker": "t.ticker",
+        "quantity": "t.quantity",
+        "cost_basis": "t.cost_basis",
+        "total_value": "t.total_value",
+        "current_price": "t.current_price",
+        "source": "'monarch'"
+      },
+      "search_type": "holding",
+      "snippet_column": 0,
+      "source_table": "monarch_holdings",
+      "source_tag": "monarch",
+      "table_name": "holdings_fts",
+      "title_column": "security_name",
+      "title_fallback": "Unknown Security",
+      "tokenizer": "porter unicode61"
     }
   ],
   "governance_fields": [
