@@ -483,6 +483,154 @@
         ],
         "results_path": "data.allTransactions.results"
       }
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "primary_key": true,
+          "type": "TEXT"
+        },
+        {
+          "name": "security_id",
+          "type": "TEXT"
+        },
+        {
+          "name": "ticker",
+          "type": "TEXT"
+        },
+        {
+          "name": "security_name",
+          "type": "TEXT"
+        },
+        {
+          "name": "security_type",
+          "type": "TEXT"
+        },
+        {
+          "name": "quantity",
+          "type": "REAL"
+        },
+        {
+          "name": "cost_basis",
+          "type": "REAL"
+        },
+        {
+          "name": "total_value",
+          "type": "REAL"
+        },
+        {
+          "name": "current_price",
+          "type": "REAL"
+        },
+        {
+          "name": "closing_price",
+          "type": "REAL"
+        },
+        {
+          "name": "price_change_dollars",
+          "type": "REAL"
+        },
+        {
+          "name": "price_change_percent",
+          "type": "REAL"
+        },
+        {
+          "name": "one_day_change_percent",
+          "type": "REAL"
+        },
+        {
+          "name": "one_day_change_dollars",
+          "type": "REAL"
+        },
+        {
+          "name": "last_synced_at",
+          "type": "TEXT"
+        },
+        {
+          "default": "CURRENT_TIMESTAMP",
+          "name": "_extracted_at",
+          "type": "TIMESTAMP"
+        }
+      ],
+      "endpoint": {
+        "operation_name": "Web_GetHoldings",
+        "query": "query Web_GetHoldings($input: PortfolioInput) { portfolio(input: $input) { aggregateHoldings { edges { node { id quantity basis totalValue securityPriceChangeDollars securityPriceChangePercent lastSyncedAt security { id name type ticker typeDisplay currentPrice currentPriceUpdatedAt closingPrice closingPriceUpdatedAt oneDayChangePercent oneDayChangeDollars } } } } } }",
+        "url": "https://api.monarch.com/graphql",
+        "variables": {
+          "input": {
+            "startDate": "{{date.today}}",
+            "endDate": "{{date.today}}",
+            "includeHiddenHoldings": true
+          }
+        }
+      },
+      "name": "monarch_holdings",
+      "response": {
+        "results_path": "data.portfolio.aggregateHoldings.edges[*].node",
+        "field_mappings": [
+          {
+            "column": "id",
+            "path": "id"
+          },
+          {
+            "column": "security_id",
+            "path": "security.id"
+          },
+          {
+            "column": "ticker",
+            "path": "security.ticker"
+          },
+          {
+            "column": "security_name",
+            "path": "security.name"
+          },
+          {
+            "column": "security_type",
+            "path": "security.typeDisplay"
+          },
+          {
+            "column": "quantity",
+            "path": "quantity"
+          },
+          {
+            "column": "cost_basis",
+            "path": "basis"
+          },
+          {
+            "column": "total_value",
+            "path": "totalValue"
+          },
+          {
+            "column": "current_price",
+            "path": "security.currentPrice"
+          },
+          {
+            "column": "closing_price",
+            "path": "security.closingPrice"
+          },
+          {
+            "column": "price_change_dollars",
+            "path": "securityPriceChangeDollars"
+          },
+          {
+            "column": "price_change_percent",
+            "path": "securityPriceChangePercent"
+          },
+          {
+            "column": "one_day_change_percent",
+            "path": "security.oneDayChangePercent"
+          },
+          {
+            "column": "one_day_change_dollars",
+            "path": "security.oneDayChangeDollars"
+          },
+          {
+            "column": "last_synced_at",
+            "path": "lastSyncedAt"
+          }
+        ]
+      }
     }
   ],
   "version": 1
