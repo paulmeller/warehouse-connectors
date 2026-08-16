@@ -104,6 +104,7 @@
     },
     {
       "name": "pocketsmith_transactions",
+      "freshness": { "per": "transaction_account_id", "event_time": "date", "label": "transaction_account_name" },
       "columns": [
         { "name": "id", "type": "TEXT", "primary_key": true },
         { "name": "date", "type": "TEXT" },

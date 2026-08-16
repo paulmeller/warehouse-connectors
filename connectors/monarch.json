@@ -414,6 +414,7 @@
         }
       },
       "name": "monarch_transactions",
+      "freshness": { "per": "account_id", "event_time": "date", "label": "account_name" },
       "response": {
         "field_mappings": [
           {

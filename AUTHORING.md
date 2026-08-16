@@ -123,6 +123,7 @@ Each table maps to a SQLite table created during sync.
 {
   "name": "my_table",
   "soft_delete": true,
+  "freshness": {...},
   "columns": [...],
   "endpoint": {...},
   "response": {...}
@@ -282,12 +283,78 @@ Use `{{...}}` in URLs and values:
 | Variable | Description |
 |----------|-------------|
 | `{{user.id}}` | From discovery step `user` |
-| `{{last_sync.date}}` | Last successful sync date |
+| `{{last_sync.date}}` | Last successful sync date. **Only safe against ingestion stamps** — see below |
 | `{{date.today}}` | Today's date (YYYY-MM-DD) |
+| `{{ day_delta(-45, format="%Y-%m-%d") }}` | A date offset from today. Use for occurrence-date lookbacks. Needs a build newer than 0.3.2 |
 | `{{date.month_start}}` | First day of current month |
 | `{{date.month_end}}` | Last day of current month |
 | `{{cookies.name}}` | Cookie value from browser_cookies auth |
 | `{{query_ids.Name}}` | From `fetch_regex_map` discovery |
+
+## Incremental windows: occurrence dates vs ingestion stamps
+
+Before you write `?start_date={{last_sync.date}}`, ask what the field means.
+
+An **ingestion stamp** — `created_at`, `updated_at`, `modified_since` — records
+when the *source* learned about the row. It only ever moves forward, so a
+window anchored to the last sync is safe: nothing can appear behind it.
+
+An **occurrence date** — a transaction's `date`, an event's `start_time` — records
+when the thing *happened*. Upstream systems deliver these late. A bank posts a
+transaction dated the 14th on the 16th. If your window starts at the last sync
+and the last sync was the 16th, that row is not delayed — it is **missed
+permanently**, because the window only moves forward and will never cover the
+14th again.
+
+This is silent. The connector reports success, the other rows flow, and one
+account quietly stops. A real spec in this gallery lost a month of one bank
+account's transactions this way before anyone noticed.
+
+If the field is an occurrence date, window on a rolling lookback instead of the
+cursor, wide enough to cover the source's worst delivery delay:
+
+```json
+"url": "https://api.example.com/transactions?start_date={{ day_delta(-45, format=\"%Y-%m-%d\") }}&end_date={{date.today}}"
+```
+
+The extra rows cost one page per sync and upsert deduplicates them.
+
+The same question applies to `incremental.stop_date_path`, but the stakes are
+lower. That rule stops the walk only when **every** row on a page is older than
+the cursor, and it imposes no floor on the request — so a late arrival is still
+reachable as long as it lands within the pages fetched before that happens.
+Point it at an occurrence date and you get a rolling window of "the most recent
+N rows by that date", which is usually fine; the residual risk is an arrival
+late by more than a page of history. Point it at an ingestion stamp and ordering
+must agree with it, or the walk stops at an arbitrary point.
+
+> `day_delta` requires a build newer than warehouse 0.3.2. On 0.3.2 there is no
+> way to express a lookback, so an occurrence-date connector on that release
+> will lose late arrivals — there is no spec-level workaround.
+
+## Declaring feeds with `freshness`
+
+A table that unions many independent feeds — one row set per bank account, per
+chat, per vault — can have one feed die while the connector stays healthy. Say
+which column separates them and `warehouse doctor` will notice:
+
+```json
+"freshness": {
+  "per": "transaction_account_id",
+  "event_time": "date",
+  "label": "transaction_account_name"
+}
+```
+
+`event_time` must be when the row happened at the source, not `_extracted_at` —
+that is identical for every feed on every sync and so distinguishes none of
+them. `label` may name a column in the same table, or `{ "table", "key",
+"column" }` to look a name up elsewhere.
+
+Each feed is judged against its **siblings** and against its **own** historical
+cadence, so a connector that stops entirely does not fire this (that is the
+connector-level staleness check), and a feed that has always been quiet is
+reported as unwatched rather than broken. Older releases ignore the field.
 
 ## Testing
 

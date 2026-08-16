@@ -19,6 +19,7 @@
   "tables": [
     {
       "name": "notion_pages",
+      "freshness": { "per": "parent_id", "event_time": "last_edited_time", "label": { "table": "notion_databases", "key": "id", "column": "title" } },
       "columns": [
         { "name": "id", "type": "TEXT", "primary_key": true },
         { "name": "url", "type": "TEXT" },
