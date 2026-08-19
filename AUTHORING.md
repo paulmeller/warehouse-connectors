@@ -61,7 +61,7 @@ The simplest possible connector (no auth, single table, no FTS):
 
 ### Auth Types
 
-#### `config_key` — API key from config file
+#### `config_key` — a named credential, from the broker or the config file
 
 ```json
 {
@@ -71,7 +71,34 @@ The simplest possible connector (no auth, single table, no FTS):
 }
 ```
 
-The key is read from `~/.warehouse/config.toml`. For Bearer tokens, add `"header_prefix": "Bearer"`.
+For Bearer tokens, add `"header_prefix": "Bearer"`.
+
+The credential is looked up in two places, in this order:
+
+1. **`~/.warehouse/config.toml`** — `[pocketsmith] api_key = "..."`. Plain text
+   on disk.
+2. **The credential broker** — if config has no answer, the connector asks the
+   broker provider bound to it:
+
+   ```toml
+   [broker.providers]
+   pocketsmith = "pocketsmith"
+   ```
+
+**Prefer the broker.** A spec you install from a URL runs with your
+credentials, so the fewer live keys sitting in a plain file the better. The
+broker vends a credential per call from the OS keychain rather than storing one
+where every process running as you can read it. Nothing about the spec changes
+— `config_key` is the same declaration either way — so migrating is: bind the
+connector under `[broker.providers]`, then **delete the key from
+`config.toml`**. The deletion is what completes it; while the key is in config
+it keeps winning, deliberately, so that an explicit value you set is never
+silently overridden by a managed one.
+
+Whichever source answers, a connector may only read keys under its **own**
+section: `pocketsmith` can read `pocketsmith.api_key` and nothing else. That
+holds for the broker path too — a connector reaches only the one provider bound
+to it, never another connector's.
 
 #### `env_var` — Environment variable
 
